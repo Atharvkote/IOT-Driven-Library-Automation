@@ -1,0 +1,33 @@
+{
+  "name": "IOTLB API Server",
+  "version": "1.0.0",
+  "description": "IOTLB API Server for handling RFID scans and student data",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@socket.io/redis-streams-adapter": "^0.2.2",
+    "body-parser": "^2.2.0",
+    "chalk": "^5.6.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.8.1",
+    "mongoose": "^7.5.0",
+    "rate-limit-redis": "^4.2.2",
+    "rate-limiter-flexible": "^8.1.0",
+    "socket.io": "^4.8.1",
+    "winston": "^3.18.3",
+    "winston-loki": "^6.1.3"
+  }
+}
