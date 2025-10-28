@@ -1,6 +1,7 @@
 import Students from "../models/student.model.js";
 import Scans from "../models/scans.model.js";
 import { io } from "../server.js";
+import { sendWelcomeMessage } from "../utils/twilio.js";
 
 export const rfidScan = async (req, res) => {
   try {
@@ -36,7 +37,7 @@ export const rfidScan = async (req, res) => {
 
     // EMIT TO FRONTEND
     io.emit("new-scan", { student, scan, message: "You Can Enter Now !!!" });
-
+    sendWelcomeMessage(student);
     res.status(200).json({
       message: "You Can Enter Now !!!",
       student,

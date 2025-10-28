@@ -216,7 +216,7 @@ io.on("connection", (socket) => {
   socketioLogger.info(`New socket connected: ${socket.id}`);
 
   const { studentId } = socket.handshake.query;
-  console.log("Student ID from socket query:", studentId);
+  socketioLogger.info("Student ID(PRN) from socket query:", studentId);
 
   // Get all borrow requests (admin)
   socket.on("getBorrowRequests", async () => {
