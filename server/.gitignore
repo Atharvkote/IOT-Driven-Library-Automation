@@ -37,14 +37,6 @@ coverage/
 coverage-final.json
 nyc_output/
 
-# Environment files (do NOT commit secrets)
-.env
-.env.*.local
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
 # Runtime data
 pids
 *.pid

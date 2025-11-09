@@ -350,7 +350,7 @@ io.on("connection", (socket) => {
 });
 
 // --------------------- SERVER ---------------------
-server.listen(SERVER_PORT, () => {
+server.listen(SERVER_PORT,"0.0.0.0" ,() => {
   logger.info(
     `Server is running on http://localhost:${SERVER_PORT} [Env: ${process.env.NODE_ENV}]`
   );

@@ -50,7 +50,7 @@ Thank you,
 
     try {
       await client.messages.create({
-        from: process.env.TWILIO_FROM,
+        from: process.env.TWILIO_FROM || "+14155238886",
         to: `whatsapp:+918830952127`,
         body: msg.trim(),
         mediaUrl: [
@@ -89,7 +89,7 @@ Happy Reading!
 
   try {
     await client.messages.create({
-      from: process.env.TWILIO_FROM, // e.g., 'whatsapp:+14155238886'
+      from: process.env.TWILIO_FROM || "+14155238886", // e.g., 'whatsapp:+14155238886'
       to: `whatsapp:${student.whatsappNumber}`,
       body: msg.trim(),
       mediaUrl: [
