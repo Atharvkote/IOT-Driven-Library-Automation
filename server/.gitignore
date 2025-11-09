@@ -58,6 +58,8 @@ pids
 .DS_Store
 Thumbs.db
 
+seeds/*
+logs/
 # IDE / editor folders
 .vscode/
 .idea/

@@ -63,17 +63,51 @@ await calculateFines();
 const app = express();
 const SERVER_PORT = process.env.SERVER_PORT || 5000;
 const server = http.createServer(app);
-const redisClient = new Redis(process.env.REDIS_URL);
 
-// Redis connection check
+// Configure server timeouts and keep-alive
+server.keepAliveTimeout = 65000; // 65 seconds
+server.headersTimeout = 66000; // 66 seconds (must be > keepAliveTimeout)
+
+// Redis connection with error handling
+let redisClient;
+try {
+  redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+    retryStrategy: (times) => {
+      const delay = Math.min(times * 50, 2000);
+      logger.warn(`Redis reconnecting in ${delay}ms (attempt ${times})`);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: true,
+    lazyConnect: false,
+  });
+
+  redisClient.on("error", (err) => {
+    logger.error("Redis connection error:", err);
+  });
+
+  redisClient.on("connect", () => {
+    logger.info("Redis client connected");
+  });
+
+  redisClient.on("ready", () => {
+    logger.info("Redis client ready");
+  });
+} catch (error) {
+  logger.error("Failed to create Redis client:", error);
+  redisClient = null;
+}
+
+// Redis connection check (non-blocking)
 if (!redisClient) {
-  logger.error(
-    `Redis connection failed at ${process.env.REDIS_URL} [Env: Docker]`
-  );
+  logger.warn("Redis client not available - some features may be limited");
 } else {
-  logger.info(
-    `Redis connected successfully at ${process.env.REDIS_URL} [Env: Docker]`
-  );
+  // Test Redis connection
+  redisClient.ping().then(() => {
+    logger.info(`Redis connected successfully at ${process.env.REDIS_URL || "redis://localhost:6379"}`);
+  }).catch((err) => {
+    logger.error(`Redis connection failed: ${err.message}`);
+  });
 }
 
 // Middleware
@@ -105,14 +139,21 @@ const allowedOrigins = ["http://localhost:5173", "http://localhost:9090", "*"];
 
 app.use(cors()); // Allow all origins for testing; adjust in production
 
-// Rate limiters
-const rateLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: "middleware",
-  points: 100,
-  duration: 30,
-  blockDuration: 15 * 60,
-});
+// Rate limiters (only if Redis is available)
+let rateLimiter = null;
+if (redisClient) {
+  try {
+    rateLimiter = new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: "middleware",
+      points: 100,
+      duration: 30,
+      blockDuration: 15 * 60,
+    });
+  } catch (error) {
+    logger.warn("Failed to create rate limiter:", error.message);
+  }
+}
 
 // app.use((req, res, next) => {
 //   rateLimiter
@@ -124,19 +165,28 @@ const rateLimiter = new RateLimiterRedis({
 //     });
 // });
 
-// Auth limiter
-const authLimiter = new RateLimiterRedis({
-  storeClient: redisClient,
-  keyPrefix: "auth_fail_limiter",
-  points: 10,
-  duration: 60 * 15,
-  blockDuration: 60 * 15,
-});
+// Auth limiter (only if Redis is available)
+let authLimiter = null;
+if (redisClient) {
+  try {
+    authLimiter = new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: "auth_fail_limiter",
+      points: 10,
+      duration: 60 * 15,
+      blockDuration: 60 * 15,
+    });
+  } catch (error) {
+    logger.warn("Failed to create auth limiter:", error.message);
+  }
+}
 
 app.use("/api/v1/auth", async (req, res, next) => {
   try {
     if (req.path === "/check-auth") return next();
-    await authLimiter.consume(req.ip);
+    if (authLimiter) {
+      await authLimiter.consume(req.ip);
+    }
     next();
   } catch {
     logger.warn(`Auth rate limit exceeded for IP: ${req.ip}`);
@@ -147,22 +197,29 @@ app.use("/api/v1/auth", async (req, res, next) => {
   }
 });
 
-// Sensitive endpoints limiter
-const sensitiveEndpointsLimiter = rateLimit({
-  windowMs: 30 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: ipKeyGenerator,
-  handler: (req, res) => {
-    logger.warn(`Sensitive endpoint rate limit exceeded for IP: ${req.ip}`);
-    res.status(429).json({ success: false, message: "Too many requests" });
-  },
-  store: new RedisStore({
-    sendCommand: (...args) => redisClient.call(...args),
-    skipFailedRequests: true,
-  }),
-});
+// Sensitive endpoints limiter (only if Redis is available)
+let sensitiveEndpointsLimiter = null;
+if (redisClient) {
+  try {
+    sensitiveEndpointsLimiter = rateLimit({
+      windowMs: 30 * 1000,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator: ipKeyGenerator,
+      handler: (req, res) => {
+        logger.warn(`Sensitive endpoint rate limit exceeded for IP: ${req.ip}`);
+        res.status(429).json({ success: false, message: "Too many requests" });
+      },
+      store: new RedisStore({
+        sendCommand: (...args) => redisClient.call(...args),
+        skipFailedRequests: true,
+      }),
+    });
+  } catch (error) {
+    logger.warn("Failed to create sensitive endpoints limiter:", error.message);
+  }
+}
 
 // Logging requests
 app.use((req, res, next) => {
@@ -185,6 +242,27 @@ app.use("/api/v1/book", bookRoutes);
 app.use("/api/v1/issue", issueRoutes);
 app.use("/api/v1/pir", sectionRoutes);
 
+// Global error handler middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  logger.error(`Unhandled error: ${err.message}`, { stack: err.stack });
+  
+  // Don't send error details in production
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
+});
+
 // // System Metrics route (Prometheus)
 // app.get("/metrics", async (req, res) => {
 //   res.setHeader("Content-type", client.register.contentType);
@@ -196,11 +274,21 @@ app.use("/api/v1/pir", sectionRoutes);
 /**
  * @socketio Initialization
  * - Creates Socket.IO server attached to HTTP server
- * - Uses Redis adapter for scaling across instances
+ * - Uses Redis adapter for scaling across instances (if available)
  * - Configures allowed origins and ping options
  */
+let ioAdapter = undefined;
+if (redisClient) {
+  try {
+    ioAdapter = createAdapter(redisClient);
+    logger.info("Socket.IO Redis adapter initialized");
+  } catch (error) {
+    logger.warn("Failed to create Socket.IO Redis adapter, using default:", error.message);
+  }
+}
+
 export const io = new Server(server, {
-  adapter: createAdapter(redisClient),
+  adapter: ioAdapter,
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST", "DELETE", "PATCH", "HEAD", "PUT"],
@@ -209,6 +297,8 @@ export const io = new Server(server, {
   pingInterval: 5000,
   pingTimeout: 20000,
   allowEIO3: true,
+  connectTimeout: 45000,
+  transports: ["websocket", "polling"],
 });
 
 io.on("connection", (socket) => {
@@ -350,10 +440,33 @@ io.on("connection", (socket) => {
 });
 
 // --------------------- SERVER ---------------------
-server.listen(SERVER_PORT,"0.0.0.0" ,() => {
+server.listen(SERVER_PORT, "0.0.0.0", () => {
   logger.info(
-    `Server is running on http://localhost:${SERVER_PORT} [Env: ${process.env.NODE_ENV}]`
+    `Server is running on http://0.0.0.0:${SERVER_PORT} [Env: ${process.env.NODE_ENV}]`
   );
+  logger.info(`Server accessible at http://localhost:${SERVER_PORT}`);
+});
+
+// Handle server errors
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    logger.error(`Port ${SERVER_PORT} is already in use`);
+  } else {
+    logger.error("Server error:", error);
+  }
+  process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception:", error);
+  // Don't exit - log and continue
+});
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+  // Don't exit - log and continue
 });
 
 // Graceful shutdown

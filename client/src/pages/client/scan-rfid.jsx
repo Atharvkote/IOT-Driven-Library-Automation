@@ -1,18 +1,61 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Wifi, BookOpen, Zap } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Wifi, BookOpen, Zap, CheckCircle } from "lucide-react"
 import { GiBookmarklet } from "react-icons/gi"
 import { BiRfid } from "react-icons/bi"
+import { useSocket } from "../../store/socket-context"
+import { useLibrary } from "../../store/libaray-session"
+import { toast } from "sonner"
 
 export default function ScanRFID() {
     const [mounted, setMounted] = useState(false)
     const [isScanning, setIsScanning] = useState(false)
     const [scanProgress, setScanProgress] = useState(0)
+    const [scanResult, setScanResult] = useState(null)
+    const socket = useSocket()
+    const { isLoggedIn, student } = useLibrary()
+    const navigate = useNavigate()
 
     useEffect(() => {
         setMounted(true)
     }, [])
+
+    // Listen for Socket.IO scan events
+    useEffect(() => {
+        if (!socket) return
+
+        const handleNewScan = (data) => {
+            console.log("Scan received on scan-rfid page:", data)
+            
+            if (data.student && data.scan) {
+                setScanResult(data)
+                setIsScanning(true)
+                setScanProgress(100)
+                
+                toast.success(data.message || "RFID scanned successfully!")
+                
+                // Redirect to home after a short delay
+                setTimeout(() => {
+                    navigate("/")
+                }, 2000)
+            }
+        }
+
+        socket.on("new-scan", handleNewScan)
+
+        return () => {
+            socket.off("new-scan", handleNewScan)
+        }
+    }, [socket, navigate])
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (isLoggedIn && student) {
+            navigate("/")
+        }
+    }, [isLoggedIn, student, navigate])
 
     useEffect(() => {
         if (!isScanning) return
@@ -29,11 +72,6 @@ export default function ScanRFID() {
 
         return () => clearInterval(interval)
     }, [isScanning])
-
-    const handleStartScan = () => {
-        setIsScanning(true)
-        setScanProgress(0)
-    }
 
     return (
         <div className="min-h-screen flex flex-col lg:flex-row">
@@ -132,16 +170,29 @@ export default function ScanRFID() {
                                 )}
 
                                 <div className="relative z-10 text-center">
-                                    <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-                                        <div className="w-20 h-20 relative bg-teal-100 rounded-full flex items-center justify-center mb-4">
-                                            <div className="absolute w-16 h-16 animate-ping bg-teal-100 rounded-full"></div>
-                                            <BiRfid className="w-12 h-12 text-teal-600" />
+                                    {scanResult ? (
+                                        <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
+                                            <div className="w-20 h-20 relative bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                                <CheckCircle className="w-12 h-12 text-green-600" />
+                                            </div>
+                                            <p className="text-lg text-green-700 font-bold">Scan Successful!</p>
+                                            <p className="text-sm text-slate-700 mt-2 font-semibold">
+                                                Welcome, {scanResult.student?.name || "Student"}!
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-1">Redirecting to home...</p>
                                         </div>
-                                        <p className="text-lg text-slate-600 font-medium">Waiting for a scan...</p>
-                                        <p className="text-sm text-slate-700 mt-2 font-semibold border-2 border-teal-400 bg-teal-500/30 rounded-2xl px-3 py-1">
-                                            • RFID reader is active
-                                        </p>
-                                    </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
+                                            <div className="w-20 h-20 relative bg-teal-100 rounded-full flex items-center justify-center mb-4">
+                                                <div className="absolute w-16 h-16 animate-ping bg-teal-100 rounded-full"></div>
+                                                <BiRfid className="w-12 h-12 text-teal-600" />
+                                            </div>
+                                            <p className="text-lg text-slate-600 font-medium">Waiting for a scan...</p>
+                                            <p className="text-sm text-slate-700 mt-2 font-semibold border-2 border-teal-400 bg-teal-500/30 rounded-2xl px-3 py-1">
+                                                • RFID reader is active
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

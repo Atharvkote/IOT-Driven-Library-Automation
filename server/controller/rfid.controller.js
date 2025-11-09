@@ -35,13 +35,39 @@ export const rfidScan = async (req, res) => {
       location: "Main Desk",
     });
 
-    // EMIT TO FRONTEND
-    io.emit("new-scan", { student, scan, message: "You Can Enter Now !!!" });
-    sendWelcomeMessage(student);
+    // Convert Mongoose documents to plain objects for Socket.IO emission
+    const studentData = student.toObject ? student.toObject() : student;
+    const scanData = scan.toObject ? scan.toObject() : scan;
+
+    // EMIT TO FRONTEND - broadcast to all connected clients
+    try {
+      io.emit("new-scan", { 
+        student: studentData, 
+        scan: scanData, 
+        message: "You Can Enter Now !!!" 
+      });
+      
+      console.log("Emitted new-scan event to all clients:", {
+        studentId: studentData._id,
+        studentName: studentData.name,
+        scanId: scanData._id
+      });
+    } catch (emitError) {
+      console.error("Error emitting socket event:", emitError);
+      // Continue even if socket emit fails
+    }
+
+    // Send welcome message asynchronously (don't block response)
+    sendWelcomeMessage(student).catch(err => {
+      console.error("Error sending welcome message:", err);
+      // Don't fail the request if message sending fails
+    });
+
+    // Send response immediately
     res.status(200).json({
       message: "You Can Enter Now !!!",
-      student,
-      scan,
+      student: studentData,
+      scan: scanData,
     });
   } catch (error) {
     console.error("RFID Scan Error:", error);

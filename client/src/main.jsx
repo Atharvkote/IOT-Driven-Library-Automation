@@ -25,13 +25,13 @@ createRoot(document.getElementById('root')).render(
           },
         }}
       />
-      <LibraryProvider>
-        <SocketProvider>
+      <SocketProvider>
+        <LibraryProvider>
           <StudentSessionProvider>
             <App />
           </StudentSessionProvider>
-        </SocketProvider>
-      </LibraryProvider>
+        </LibraryProvider>
+      </SocketProvider>
     </BrowserRouter>
   </StrictMode>,
 )
