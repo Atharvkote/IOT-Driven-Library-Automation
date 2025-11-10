@@ -63,20 +63,21 @@ flowchart LR
 
 
 ## Tech Stack
-
-| Layer               | Technology                                                                                                                     | Purpose                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| **Frontend**        | ![React](https://skillicons.dev/icons?i=react) **React** + ![Vite](https://skillicons.dev/icons?i=vite) **Vite**               | Interactive and modular web client               |
-|                     | ![Tailwind](https://skillicons.dev/icons?i=tailwind) **Tailwind CSS**                                                          | Responsive and fast UI design                    |
-|                     | ![Socket.io](https://skillicons.dev/icons?i=socketio) **Socket.IO Client**                                                     | Real-time updates and sync                       |
-| **Backend**         | ![Node.js](https://skillicons.dev/icons?i=nodejs) **Node.js** + ![Express](https://skillicons.dev/icons?i=express) **Express** | REST APIs and WebSocket gateway                  |
-|                     | **Socket.IO (Server)**                                                                                                         | Real-time data push and RFID session sync        |
-|                     | **Redis**                                                                                                                      | Socket scaling, caching, and sessions            |
-|                     | ![MongoDB](https://skillicons.dev/icons?i=mongodb) **MongoDB**                                                                 | Data persistence (books, students, transactions) |
-| **IoT Layer**       | ![Arduino](https://skillicons.dev/icons?i=arduino) **ESP32 + RFID RC522**                                                      | Physical book/student identification             |
-| **Notifications**   | **Twilio API**                                                                                                                 | SMS alerts for fines, issue/return updates       |
-| **DevOps**          | ![Docker](https://skillicons.dev/icons?i=docker) **Docker**                                                                    | Containerized services for Redis, MongoDB        |
-| **Package Manager** | ![pnpm](https://skillicons.dev/icons?i=pnpm) **pnpm**                                                                          | Fast and isolated dependency management          |
+| Icon | Technology | Purpose |
+|:----:|:------------|:---------|
+| ![React](https://skillicons.dev/icons?i=react) | **React** | Builds interactive and modular user interfaces |
+| ![Vite](https://skillicons.dev/icons?i=vite) | **Vite** | Fast development server and build tool |
+| ![Tailwind](https://skillicons.dev/icons?i=tailwind) | **Tailwind CSS** | Utility-first styling for responsive design |
+| ![Socket.io](https://skillicons.dev/icons?i=socketio) | **Socket.IO Client** | Enables real-time updates and data sync |
+| ![Node.js](https://skillicons.dev/icons?i=nodejs) | **Node.js** | Handles server logic and backend operations |
+| ![Express](https://skillicons.dev/icons?i=express) | **Express** | RESTful API framework for Node.js |
+|  | **Socket.IO (Server)** | Real-time data push and event communication |
+| ![Redis](https://skillicons.dev/icons?i=redis) | **Redis** | Caching, socket scaling, and session management |
+| ![MongoDB](https://skillicons.dev/icons?i=mongodb) | **MongoDB** | Stores student, book, and transaction data |
+| ![Arduino](https://skillicons.dev/icons?i=arduino) | **ESP32 + RFID RC522** | Physical identification via RFID cards |
+|  | **Twilio API** | Sends SMS notifications for fines and updates |
+| ![Docker](https://skillicons.dev/icons?i=docker) | **Docker** | Containerized deployment for Redis and MongoDB |
+| ![pnpm](https://skillicons.dev/icons?i=pnpm) | **pnpm** | Fast and isolated dependency management |
 
 
 ## Key Features
