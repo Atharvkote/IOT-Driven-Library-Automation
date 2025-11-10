@@ -3,53 +3,116 @@
 import { useState, useEffect } from "react"
 import { ChevronDown, ChevronUp, Clock, AlertCircle, CheckCircle, XCircle, Book } from "lucide-react"
 import { useSocket } from "../../store/socket-context"
+import { useLibrary } from "../../store/libaray-session"
 import { GiBookmarklet } from "react-icons/gi"
 import { toast } from "sonner"
+import axios from "axios"
 
 export default function MyBookRequests() {
   const socket = useSocket()
+  const { student } = useLibrary()
   const [requests, setRequests] = useState([])
   const [filter, setFilter] = useState("All")
   const [expandedRequest, setExpandedRequest] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [studentInfo, setStudentInfo] = useState(null)
+  const [useHttpFallback, setUseHttpFallback] = useState(false)
 
+  // HTTP fallback function
+  const fetchRequestsViaHttp = async () => {
+    if (!student?._id) {
+      console.warn("No student ID available for HTTP fallback");
+      return;
+    }
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await axios.get(`${API_URL}/api/v1/issue/student/${student._id}`);
+      
+      if (response.data.success) {
+        setRequests(response.data.requests || []);
+        setStudentInfo(response.data.student);
+        setIsLoading(false);
+        console.log("Fetched requests via HTTP fallback:", response.data.requests.length);
+      }
+    } catch (error) {
+      console.error("HTTP fallback error:", error);
+      toast.error("Failed to fetch requests");
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-
     console.log("Requests updated:", requests);
-
   }, [requests])
 
-
+  // Try Socket.IO first, fallback to HTTP
   useEffect(() => {
-    if (!socket) return
-
-    setIsLoading(true)
-
-    socket.emit("getMyBorrowRequests")
-
-    const handleRequests = ({ requests: data, student }) => {
-      setRequests(data)
-      setStudentInfo(student)
-      setIsLoading(false)
+    if (!student?._id) {
+      setIsLoading(false);
+      return;
     }
 
-    const handleUpdatedRequest = (updatedReq) => {
-      setRequests((prev) =>
-        prev.map((r) => (r._id === updatedReq._id ? updatedReq : r))
-      )
-      toast.success("Request status updated")
-    }
+    setIsLoading(true);
+    let socketTimeout;
+    let socketWorked = false;
 
-    socket.on("myBorrowRequests", handleRequests)
-    socket.on("myBorrowRequestUpdated", handleUpdatedRequest)
+    // Try Socket.IO first
+    if (socket && socket.connected) {
+      socket.emit("getMyBorrowRequests");
 
-    return () => {
-      socket.off("myBorrowRequests", handleRequests)
-      socket.off("myBorrowRequestUpdated", handleUpdatedRequest)
+      const handleRequests = ({ requests: data, student }) => {
+        socketWorked = true;
+        clearTimeout(socketTimeout);
+        setRequests(data || []);
+        setStudentInfo(student);
+        setIsLoading(false);
+        setUseHttpFallback(false);
+        console.log("Fetched requests via Socket.IO:", data?.length || 0);
+      };
+
+      const handleError = (error) => {
+        console.error("Socket error:", error);
+        if (!socketWorked) {
+          clearTimeout(socketTimeout);
+          setUseHttpFallback(true);
+          fetchRequestsViaHttp();
+        }
+      };
+
+      const handleUpdatedRequest = (updatedReq) => {
+        setRequests((prev) =>
+          prev.map((r) => (r._id === updatedReq._id ? updatedReq : r))
+        );
+        toast.success("Request status updated");
+      };
+
+      socket.on("myBorrowRequests", handleRequests);
+      socket.on("myBorrowRequestsError", handleError);
+      socket.on("myBorrowRequestUpdated", handleUpdatedRequest);
+
+      // Fallback to HTTP if socket doesn't respond in 3 seconds
+      socketTimeout = setTimeout(() => {
+        if (!socketWorked) {
+          console.log("Socket timeout, using HTTP fallback");
+          setUseHttpFallback(true);
+          fetchRequestsViaHttp();
+        }
+      }, 3000);
+
+      return () => {
+        clearTimeout(socketTimeout);
+        socket.off("myBorrowRequests", handleRequests);
+        socket.off("myBorrowRequestsError", handleError);
+        socket.off("myBorrowRequestUpdated", handleUpdatedRequest);
+      };
+    } else {
+      // Socket not available, use HTTP immediately
+      console.log("Socket not available, using HTTP fallback");
+      setUseHttpFallback(true);
+      fetchRequestsViaHttp();
     }
-  }, [socket]) // dependency ensures effect runs again if socket changes
+  }, [socket, student?._id]) // Re-fetch when socket or student changes
 
 
   const filteredRequests = filter === "All" ? requests : requests.filter((req) => req.status === filter)

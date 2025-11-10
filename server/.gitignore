@@ -48,6 +48,14 @@ pids
 .npm/
 .npmrc
 
+.env/
+.env.local/
+.env.development/
+.env.test/
+.env.production/
+
+
+
 # Lock files
 # NOTE: commit your lockfile!  (commit pnpm-lock.yaml for pnpm, package-lock.json for npm)
 # If you purposely want to ignore them (not recommended), uncomment below:

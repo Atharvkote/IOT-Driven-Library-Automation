@@ -16,6 +16,8 @@ import Login from './pages/client/login'
 import ScanRFID from './pages/client/scan-rfid'
 import VerifyPage from './pages/admin/verification'
 import ProfilePage from './pages/client/profile'
+import BooksAnalyticsPage from './pages/admin/stocks'
+import FineManagement from './pages/admin/fine-management'
 
 // Layouts
 
@@ -60,6 +62,9 @@ const App = () => {
           <Route path="requests" element={<ManageRequests />} />
           <Route path="twins" element={<LibraryDashboard />} />
           <Route path="verify" element={<VerifyPage />} />
+          <Route path="stocks" element={<BooksAnalyticsPage />} />
+          <Route path="fines" element={<FineManagement />} />
+
         </Route>
 
 

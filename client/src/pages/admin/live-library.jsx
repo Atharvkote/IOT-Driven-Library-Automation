@@ -23,7 +23,7 @@ export default function LibraryDashboard() {
   useEffect(() => {
     // Default shelves
     const mockShelves = [
-      { id: "1", name: "Computer Science", borrowedCount: 0, visitedCount: 0, color: shelfColors[0] },
+      { id: "1", name: "Computer Science", borrowedCount: 5, visitedCount: 0, color: shelfColors[0] },
       { id: "2", name: "Mechanical Engineering", borrowedCount: 0, visitedCount: 0, color: shelfColors[1] },
       { id: "3", name: "History", borrowedCount: 0, visitedCount: 0, color: shelfColors[2] },
       { id: "4", name: "Technology", borrowedCount: 0, visitedCount: 0, color: shelfColors[3] },
@@ -44,7 +44,7 @@ export default function LibraryDashboard() {
           const csData = data[0]
           return {
             ...shelf,
-            borrowedCount: csData.booksBoughtCount,
+            borrowedCount: 5,
             visitedCount: csData.visitCount,
           }
         }

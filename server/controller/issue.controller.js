@@ -178,3 +178,42 @@ export const verifyBorrowRequest = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+// Get student's borrow requests (HTTP fallback)
+export const getStudentBorrowRequests = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    if (!studentId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Student ID is required" 
+      });
+    }
+
+    const student = await Student.findById(studentId).lean();
+    if (!student) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Student not found" 
+      });
+    }
+
+    const requests = await BorrowedBook.find({ student: studentId })
+      .populate("book")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      requests,
+      student
+    });
+  } catch (error) {
+    console.error("Error fetching student borrow requests:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};

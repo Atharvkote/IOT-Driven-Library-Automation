@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import axios from "axios"
-import { useSocket } from "./socket-context"
+import { useSocket, useSetStudentId } from "./socket-context"
 
 const LibraryContext = createContext()
 
@@ -12,6 +12,7 @@ export const LibraryProvider = ({ children }) => {
     const [latestScan, setLatestScan] = useState(null)
     const [loading, setLoading] = useState(true)
     const socket = useSocket()
+    const setStudentId = useSetStudentId()
 
     const API_URL = import.meta.env.VITE_API_URL + "/rfid/is-active"
 
@@ -25,12 +26,18 @@ export const LibraryProvider = ({ children }) => {
                 setLatestScan(res.data.latestScan)
                 setIsLoggedIn(res.data.isActive)
 
+                // Update socket studentId when student changes
+                if (res.data.student?._id && setStudentId) {
+                    setStudentId(res.data.student._id)
+                }
+
                 if (res.data.isActive) {
                     localStorage.setItem("rfid_prn", prn_number)
                     localStorage.setItem("rfid_student", JSON.stringify(res.data.student))
                 } else {
                     localStorage.removeItem("rfid_prn")
                     localStorage.removeItem("rfid_student")
+                    if (setStudentId) setStudentId(null)
                 }
 
                 return res.data.isActive // return value
@@ -41,7 +48,7 @@ export const LibraryProvider = ({ children }) => {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [setStudentId])
 
 
     // Listen for Socket.IO scan events
@@ -55,6 +62,11 @@ export const LibraryProvider = ({ children }) => {
                 // Update student and scan data
                 setStudent(data.student)
                 setLatestScan(data.scan)
+                
+                // Update socket studentId
+                if (data.student._id && setStudentId) {
+                    setStudentId(data.student._id)
+                }
                 
                 // Set login status to true when scan is received
                 setIsLoggedIn(true)

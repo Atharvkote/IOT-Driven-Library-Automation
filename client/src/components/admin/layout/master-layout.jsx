@@ -23,6 +23,7 @@ import {
   Search,
   X,
   Wifi,
+  BarChart,
 } from "lucide-react"
 import { PiTractorFill } from "react-icons/pi"
 import { FaUserCog, FaHome, FaCheck, FaCheckCircle, FaRupeeSign } from "react-icons/fa"
@@ -88,6 +89,12 @@ export function MasterLayout() {
         href: "/admin/fines",
         icon: FaRupeeSign,
         current: pathname === "/admin/fines",
+      },
+      {
+        name: "Stocks & Analytics",
+        href: "/admin/stocks",
+        icon: BarChart,
+        current: pathname === "/admin/stocks",
       },
 
       {

@@ -68,12 +68,12 @@ Thank you,
 };
 
 export const sendWelcomeMessage = async (student) => {
-  if (!student?.whatsappNumber) {
-    console.warn(
-      `Skipping ${student?.name || "unknown"} — no WhatsApp number.`
-    );
-    return;
-  }
+  // if (!student?.whatsappNumber) {
+  //   console.warn(
+  //     `Skipping ${student?.name || "unknown"} — no WhatsApp number.`
+  //   );
+  //   return;
+  // }
 
   const msg = `
 🎉 *Welcome to the Digital Library!* 🎉
@@ -90,7 +90,7 @@ Happy Reading!
   try {
     await client.messages.create({
       from: process.env.TWILIO_FROM || "+14155238886", // e.g., 'whatsapp:+14155238886'
-      to: `whatsapp:${student.whatsappNumber}`,
+      to: `whatsapp:+918830952127`,
       body: msg.trim(),
       mediaUrl: [
         "https://res.cloudinary.com/dgz7hqbl9/image/upload/v1761492761/Screenshot_2025-10-26_205811_spnyqs.png", // welcome banner

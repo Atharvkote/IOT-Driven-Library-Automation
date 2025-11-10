@@ -35,14 +35,12 @@ import { fileURLToPath } from "url";
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-streams-adapter";
 
-//Models
-import Book from "./models/book.model.js";
-import Students from "./models/student.model.js";
-import BorrowedBook from "./models/borrowed-books.model.js";
-
 // Loggers
 import logger from "./utils/logger.js";
 import { socketioLogger } from "./utils/logger.js";
+
+// Socket handlers (organized)
+import { initializeSocketHandlers } from "./socket/socketHandlers.js";
 
 // Database configs
 import { connectDB, disconnectDB } from "./config/mongodb.config.js";
@@ -53,6 +51,7 @@ import studentRoutes from "./routes/student.routes.js";
 import bookRoutes from "./routes/book.routes.js";
 import issueRoutes from "./routes/issue.routes.js";
 import sectionRoutes from "./routes/section.routes.js";
+import finesRoutes from "./routes/fines.routes.js";
 import Section from "./models/section.model.js";
 import { calculateFines } from "./controller/fines.controller.js";
 
@@ -241,6 +240,7 @@ app.use("/api/v1/student", studentRoutes);
 app.use("/api/v1/book", bookRoutes);
 app.use("/api/v1/issue", issueRoutes);
 app.use("/api/v1/pir", sectionRoutes);
+app.use("/api/v1/fines", finesRoutes);
 
 // Global error handler middleware (must be after all routes)
 app.use((err, req, res, next) => {
@@ -301,143 +301,8 @@ export const io = new Server(server, {
   transports: ["websocket", "polling"],
 });
 
-io.on("connection", (socket) => {
-  socket.setMaxListeners(20);
-  socketioLogger.info(`New socket connected: ${socket.id}`);
-
-  const { studentId } = socket.handshake.query;
-  socketioLogger.info("Student ID(PRN) from socket query:", studentId);
-
-  // Get all borrow requests (admin)
-  socket.on("getBorrowRequests", async () => {
-    try {
-      const requests = await BorrowedBook.find()
-        .populate("student", "name email")
-        .populate("book", "title author isbn availableCopies totalCopies")
-        .sort({ createdAt: -1 });
-      socket.emit("borrowRequests", requests);
-    } catch (err) {
-      console.error(err);
-    }
-  });
-
-  // Get section stats
-  socket.on("getSectionStats", async () => {
-    try {
-      const sections = await Section.find({
-        sectionName: "Computer Science",
-      }).select("sectionName visitCount booksBoughtCount shelfCount");
-      socket.emit("sectionStats", sections);
-    } catch (err) {
-      console.error(err);
-      socket.emit("sectionStatsError", {
-        message: "Failed to fetch section stats",
-      });
-    }
-  });
-
-  // Get book details
-  socket.on("getBookDetails", async (bookId) => {
-    try {
-      const book = await Book.findById(bookId).lean();
-      if (!book) {
-        socket.emit("bookDetails", { error: "Book not found" });
-        return;
-      }
-      socket.emit("bookDetails", book);
-    } catch (err) {
-      console.error(err);
-      socket.emit("bookDetails", { error: "Failed to fetch book details" });
-    }
-  });
-
-  // Approve borrow request
-  socket.on("approveBorrowRequest", async (requestId) => {
-    try {
-      const req = await BorrowedBook.findByIdAndUpdate(
-        requestId,
-        { status: "Approved" },
-        { new: true }
-      ).populate("book");
-      if (req) socket.emit("borrowRequestsUpdated", req);
-    } catch (err) {
-      console.error(err);
-    }
-  });
-
-  // Reject borrow request
-  socket.on("rejectBorrowRequest", async (requestId) => {
-    try {
-      const req = await BorrowedBook.findByIdAndUpdate(
-        requestId,
-        { status: "Rejected" },
-        { new: true }
-      ).populate("book");
-      if (req) socket.emit("borrowRequestsUpdated", req);
-    } catch (err) {
-      console.error(err);
-    }
-  });
-
-  // Fetch borrow requests for this student
-  socket.on("getMyBorrowRequests", async () => {
-    try {
-      if (!studentId) return;
-      const student = await Students.findById(studentId).lean();
-      if (!student) return;
-
-      const requests = await BorrowedBook.find({ student: studentId })
-        .populate("book")
-        .sort({ createdAt: -1 })
-        .lean();
-
-      socket.emit("myBorrowRequests", { requests, student });
-    } catch (err) {
-      console.error("Error fetching borrow requests:", err);
-    }
-  });
-
-  // Update borrow request status
-  socket.on("updateBorrowRequest", async ({ requestId, newStatus }) => {
-    try {
-      const updated = await BorrowedBook.findByIdAndUpdate(
-        requestId,
-        { status: newStatus },
-        { new: true }
-      ).populate("book");
-      if (!updated) return;
-
-      // Emit update to student socket(s)
-      for (const [id, s] of io.sockets.sockets) {
-        if (s.handshake.query.studentId === updated.student.toString()) {
-          s.emit("myBorrowRequestUpdated", updated);
-        }
-      }
-    } catch (err) {
-      console.error("Error updating borrow request:", err);
-    }
-  });
-
-  // Search books
-  socket.on("searchBooks", async (query) => {
-    if (!query) return;
-    try {
-      const regex = new RegExp(query, "i");
-      const books = await Book.find({
-        $or: [{ title: regex }, { author: regex }, { isbn: regex }],
-      }).limit(10);
-
-      const user = studentId ? await Students.findById(studentId) : null;
-      socket.emit("searchResults", books, user);
-    } catch (err) {
-      console.error(err);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    socketioLogger.info(`Socket disconnected: ${socket.id}`);
-  });
-});
+// Initialize all socket event handlers
+initializeSocketHandlers(io);
 
 // --------------------- SERVER ---------------------
 server.listen(SERVER_PORT, "0.0.0.0", () => {

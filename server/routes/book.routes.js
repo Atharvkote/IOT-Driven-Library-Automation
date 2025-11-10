@@ -4,13 +4,15 @@ import {
   getBooks,
   getBook,
   updateBook,
-  deleteBook
+  deleteBook,
+  getBooksWithStockAnalytics
 } from "../controller/book.controller.js";
 
 const router = express.Router();
 
 // Routes
 router.post("/", createBook);
+router.get("/analytics/stock", getBooksWithStockAnalytics); // Must come before /:id
 router.get("/", getBooks);
 router.get("/:id", getBook);
 router.put("/:id", updateBook);

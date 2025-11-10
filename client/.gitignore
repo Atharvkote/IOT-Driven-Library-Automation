@@ -1,24 +1,90 @@
+# Node modules (works for npm, pnpm, yarn)
+node_modules/
+
+# pnpm local store (sometimes used in repo)
+.pnpm-store/
+.pnpm-debug.log*
+
 # Logs
-logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+pnpm-home/
 
-node_modules
-dist
-dist-ssr
-*.local
+# Build output
+dist/
+build/
+.out/
+.public/
+.temp/
+lib/
+esm/
+cjs/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Next.js / Gatsby / Vite / Nuxt / other framework caches
+.next/
+.nuxt/
+.cache/
+.cache-loader/
+.gatsby/
+.storybook/
+.vite/
+
+# Coverage
+coverage/
+coverage-final.json
+nyc_output/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+*.sock
+
+# npm and pnpm artifacts (ignore local npm cache folder if present)
+.npm/
+.npmrc
+
+.env/
+
+# Lock files
+# NOTE: commit your lockfile!  (commit pnpm-lock.yaml for pnpm, package-lock.json for npm)
+# If you purposely want to ignore them (not recommended), uncomment below:
+# package-lock.json
+# pnpm-lock.yaml
+
+# OS files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+
+seeds/*
+logs/
+# IDE / editor folders
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# TypeScript
+*.tsbuildinfo
+
+# Yarn PnP (if ever used)
+.pnp.*
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/versions
+.yarnrc.yml
+
+# Generated docs
+docs/.vitepress/dist
+docs/.vuepress/dist
+
+# Misc
+*.log
+*.sql
+*.sqlite
+*.tgz

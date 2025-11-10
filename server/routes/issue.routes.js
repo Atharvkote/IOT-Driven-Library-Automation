@@ -8,6 +8,7 @@ import {
   approveBorrowRequest,
   rejectBorrowRequest,
   verifyBorrowRequest,
+  getStudentBorrowRequests,
 } from "../controller/issue.controller.js";
 
 const router = express.Router();
@@ -17,6 +18,9 @@ router.post("/", createBorrowRequest);
 
 // Fetch all borrowed books
 router.get("/", getAllBorrowedBooks);
+
+// Get student's borrow requests (HTTP fallback)
+router.get("/student/:studentId", getStudentBorrowRequests);
 
 router.post("/verify", verifyBorrowRequest);
 
