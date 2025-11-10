@@ -1,6 +1,6 @@
 
 
-# IOTLB — IoT-Enabled Library Management System
+# IOTLA — IOT-Driven-Library-Automation
 
 IOTLB is a **real-time, RFID-powered library automation platform** that seamlessly bridges physical book management with digital infrastructure.
 It integrates **IoT hardware (RFID + ESP32)** with a **Node.js + MongoDB backend** and a **React-based dashboard** to deliver smart, automated, and contactless library operations.
